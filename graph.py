@@ -15,14 +15,12 @@ class Graph:
 
         for i in range(n_nodes):
             for j in range(i):
-                data = np.vstack((X[kmeans.labels_ == i], X[kmeans.labels_ == j]))
+                projs_i = np.dot(X[kmeans.labels_ == i] - kmeans.cluster_centers_[i], kmeans.cluster_centers_[j] - kmeans.cluster_centers_[i])
+                score_i = projs_i[projs_i > 0].sum()
+                projs_j = np.dot(X[kmeans.labels_ == j] - kmeans.cluster_centers_[j], kmeans.cluster_centers_[i] - kmeans.cluster_centers_[j])
+                score_j = projs_j[projs_j > 0].sum()
 
-                segment = kmeans.cluster_centers_[j] - kmeans.cluster_centers_[i]
-                segment_norm = np.linalg.norm(segment)**2
-                projs = np.dot(data - kmeans.cluster_centers_[i], segment)
-                i_projs = projs[(projs > 0) & (projs < .5 * segment_norm)]
-                j_projs = np.linalg.norm(segment)**2 - projs[(projs > .5 * segment_norm) & (projs < segment_norm)]
-                score = (i_projs.sum() + j_projs.sum()) / projs.shape[0]
+                score = (score_i + score_j) / (projs_i.shape[0] + projs_j.shape[0])
 
                 affinity[i, j] -= score
 
