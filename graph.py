@@ -1,7 +1,6 @@
 import numpy as np
 from sklearn.cluster import KMeans, SpectralClustering
 from sklearn.metrics import pairwise_distances
-from scipy.special import softmax
 
 class Graph:
     def __init__(self, n_classes):
@@ -30,7 +29,7 @@ class Graph:
         q3 = np.quantile(affinity, .75)
 
         gamma = np.log(M) / (q1 - q3)
-        affinity = softmax(gamma * affinity)
+        affinity = np.exp(gamma * affinity)
 
         labels = SpectralClustering(n_clusters=self.n_classes, affinity='precomputed').fit_predict(affinity)
         self.clusters = [kmeans.cluster_centers_[labels == i] for i in range(self.n_classes)]
