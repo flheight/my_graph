@@ -1,34 +1,34 @@
 import numpy as np
 from sklearn.cluster import KMeans, SpectralClustering
-from sklearn.metrics import pairwise_distances
 
 class Graph:
     def __init__(self, n_classes):
         self.n_classes = n_classes
 
-    def fit(self, X, n_nodes, lam, M=1e16):
+    def fit(self, X, n_nodes, M=1e3, alpha=.5):
         kmeans = KMeans(n_clusters=n_nodes).fit(X)
 
-        affinity = .5 * lam * pairwise_distances(kmeans.cluster_centers_, metric='sqeuclidean')
-        np.fill_diagonal(affinity, np.inf)
+        affinity = np.zeros((n_nodes, n_nodes))
 
         for i in range(n_nodes):
             for j in range(i):
-                projs_i = np.dot(X[kmeans.labels_ == i] - kmeans.cluster_centers_[i], kmeans.cluster_centers_[j] - kmeans.cluster_centers_[i])
+                segment_ij = kmeans.cluster_centers_[j] - kmeans.cluster_centers_[i]
+                segment_ji = -segment_ij
+                segment_norm2 = np.linalg.norm(segment_ij)**2
+
+                projs_i = np.dot(X[kmeans.labels_ == i] - kmeans.cluster_centers_[i], segment_ij)
                 score_i = projs_i[projs_i > 0].sum()
-                projs_j = np.dot(X[kmeans.labels_ == j] - kmeans.cluster_centers_[j], kmeans.cluster_centers_[i] - kmeans.cluster_centers_[j])
+                projs_j = np.dot(X[kmeans.labels_ == j] - kmeans.cluster_centers_[j], segment_ji)
                 score_j = projs_j[projs_j > 0].sum()
 
-                score = (score_i + score_j) / (projs_i.shape[0] + projs_j.shape[0])
-
-                affinity[i, j] -= score
+                affinity[i, j] = np.power((score_i + score_j) / (projs_i.shape[0] + projs_j.shape[0]) / segment_norm2, alpha)
 
         affinity += affinity.T
 
         q1 = np.quantile(affinity, .25)
         q3 = np.quantile(affinity, .75)
 
-        gamma = np.log(M) / (q1 - q3)
+        gamma = np.log(M) / (q3 - q1)
         affinity = np.exp(gamma * affinity)
 
         labels = SpectralClustering(n_clusters=self.n_classes, affinity='precomputed').fit_predict(affinity)
