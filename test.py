@@ -12,7 +12,7 @@ plt.scatter(X[:, 0], X[:, 1], color='black', s=.5)
 
 net = Graph(n_classes=2)
 
-net.fit(X, 16, lam=3e-2)
+net.fit(X, 16)
 
 colors = plt.cm.tab10(np.arange(2))
 
